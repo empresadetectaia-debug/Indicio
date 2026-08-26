@@ -15,19 +15,21 @@ export function isPolarConfigured(): boolean {
   return !!process.env.POLAR_ACCESS_TOKEN && !!process.env.POLAR_PRODUCT_ID;
 }
 
+/** Producto opcional de compra individual ("1 análisis extra", pago único). */
+export function isPolarExtraConfigured(): boolean {
+  return !!process.env.POLAR_ACCESS_TOKEN && !!process.env.POLAR_EXTRA_PRODUCT_ID;
+}
+
 function apiBase(): string {
   return process.env.POLAR_SERVER === "production"
     ? "https://api.polar.sh"
     : "https://sandbox-api.polar.sh";
 }
 
-export async function createPolarCheckout(): Promise<
-  { url: string } | { error: string }
-> {
-  if (!isPolarConfigured()) {
-    return { error: "Polar no está configurado todavía." };
-  }
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+async function createCheckoutForProduct(
+  productId: string,
+  successUrl: string
+): Promise<{ url: string } | { error: string }> {
   try {
     const res = await fetch(`${apiBase()}/v1/checkouts/`, {
       method: "POST",
@@ -36,8 +38,8 @@ export async function createPolarCheckout(): Promise<
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        products: [process.env.POLAR_PRODUCT_ID],
-        success_url: `${siteUrl}/pago-exitoso?checkout_id={CHECKOUT_ID}`,
+        products: [productId],
+        success_url: successUrl,
       }),
     });
     if (!res.ok) {
@@ -52,7 +54,34 @@ export async function createPolarCheckout(): Promise<
   }
 }
 
-export async function getPolarCheckout(checkoutId: string): Promise<
+export async function createPolarCheckout(): Promise
+  { url: string } | { error: string }
+> {
+  if (!isPolarConfigured()) {
+    return { error: "Polar no está configurado todavía." };
+  }
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  return createCheckoutForProduct(
+    process.env.POLAR_PRODUCT_ID!,
+    `${siteUrl}/pago-exitoso?checkout_id={CHECKOUT_ID}`
+  );
+}
+
+/** Checkout de pago único para "1 análisis extra" (sin suscripción). */
+export async function createPolarExtraCheckout(): Promise
+  { url: string } | { error: string }
+> {
+  if (!isPolarExtraConfigured()) {
+    return { error: "La compra individual todavía no está configurada." };
+  }
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  return createCheckoutForProduct(
+    process.env.POLAR_EXTRA_PRODUCT_ID!,
+    `${siteUrl}/pago-exitoso?checkout_id={CHECKOUT_ID}&type=extra`
+  );
+}
+
+export async function getPolarCheckout(checkoutId: string): Promise
   { email: string | null; status: string } | { error: string }
 > {
   if (!isPolarConfigured()) return { error: "Polar no está configurado todavía." };
