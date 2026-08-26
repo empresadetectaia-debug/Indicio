@@ -226,7 +226,7 @@ export default function Analyzer({
 
         <button
           onClick={handleAnalyze}
-          disabled={loading || !text.trim() || overLimit || remaining === 0}
+          disabled={loading || !text.trim() || overLimit}
           className="mt-4 w-full sm:w-auto rounded-full bg-accent px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-strong disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {loading
