@@ -46,9 +46,40 @@ export default function Analyzer({
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [plan] = useState(initialPlan);
   const [remaining, setRemaining] = useState<number | null>(initialRemaining);
+  const [extracting, setExtracting] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
 
   const charCount = text.length;
   const overLimit = charCount > maxChars;
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // permite volver a elegir el mismo archivo si hace falta
+    if (!file) return;
+
+    setFileError(null);
+    setError(null);
+    setResult(null);
+    setExtracting(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/extract-file", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setFileError(data.error || "No se pudo leer el archivo.");
+        return;
+      }
+      setText(data.text);
+    } catch {
+      setFileError("No se pudo conectar con el servidor. Intenta de nuevo.");
+    } finally {
+      setExtracting(false);
+    }
+  }
 
   async function handleAnalyze() {
     if (!text.trim() || loading || overLimit) return;
@@ -111,6 +142,33 @@ export default function Analyzer({
           placeholder="Pega aquí un párrafo, ensayo o artículo (mínimo ~50 palabras para un resultado con sentido)…"
           className="w-full resize-y rounded-lg border border-border bg-background px-4 py-3 text-[15px] leading-relaxed outline-none focus:border-accent transition-colors"
         />
+
+        <div className="mt-2 flex items-center gap-2">
+          <label
+            htmlFor="file-input"
+            className={`inline-flex items-center gap-1.5 text-xs font-medium ${
+              extracting
+                ? "text-muted cursor-not-allowed"
+                : "text-accent hover:underline cursor-pointer"
+            }`}
+          >
+            {extracting ? "Leyendo archivo…" : "📎 O sube un archivo (.docx, .pdf, .txt)"}
+          </label>
+          <input
+            id="file-input"
+            type="file"
+            accept=".docx,.pdf,.txt"
+            onChange={handleFileChange}
+            disabled={extracting}
+            className="hidden"
+          />
+        </div>
+
+        {fileError && (
+          <div className="mt-2 rounded-lg border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
+            {fileError}
+          </div>
+        )}
 
         <div className="mt-2 flex items-center justify-between text-xs text-muted">
           <span className={overLimit ? "text-danger font-medium" : ""}>
