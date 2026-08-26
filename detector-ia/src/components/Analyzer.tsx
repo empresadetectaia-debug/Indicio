@@ -12,7 +12,7 @@ interface Props {
   maxChars: number;
 }
 
-const VERDICT_STYLES: Record<
+const VERDICT_STYLES: Record
   AnalysisResult["verdict"],
   { badge: string; bar: string; ring: string }
 > = {
@@ -123,12 +123,34 @@ export default function Analyzer({
           )}
         </div>
 
+        {overLimit && text.trim() && (
+          <div className="mt-3 rounded-lg border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
+            Este texto tiene {charCount.toLocaleString("es")} caracteres, más de los{" "}
+            {maxChars.toLocaleString("es")} que permite tu plan
+            {plan === "gratis" ? " gratis" : ""}. Por eso el botón de abajo está
+            desactivado — acorta el texto{plan === "gratis" ? ", o" : ""}
+            {plan === "gratis" && (
+              <>
+                {" "}
+                <Link href="/precios" className="underline font-medium">
+                  pasa al plan sin límite
+                </Link>
+              </>
+            )}
+            {plan === "gratis" ? "" : "."}
+          </div>
+        )}
+
         <button
           onClick={handleAnalyze}
           disabled={loading || !text.trim() || overLimit || remaining === 0}
           className="mt-4 w-full sm:w-auto rounded-full bg-accent px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-strong disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          {loading ? "Analizando…" : "Analizar texto"}
+          {loading
+            ? "Analizando…"
+            : overLimit
+            ? "Texto demasiado largo"
+            : "Analizar texto"}
         </button>
 
         {error && (
