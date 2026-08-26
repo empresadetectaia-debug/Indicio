@@ -47,6 +47,10 @@ export default function Analyzer({
   const [remaining, setRemaining] = useState<number | null>(initialRemaining);
   const [extracting, setExtracting] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [canBuyExtra, setCanBuyExtra] = useState(false);
+  const [buyingExtra, setBuyingExtra] = useState(false);
+  const [buyExtraError, setBuyExtraError] = useState<string | null>(null);
+  const [usedExtraCredit, setUsedExtraCredit] = useState(false);
 
   const charCount = text.length;
   const overLimit = charCount > maxChars;
@@ -85,6 +89,8 @@ export default function Analyzer({
     setLoading(true);
     setError(null);
     setErrorCode(null);
+    setCanBuyExtra(false);
+    setBuyExtraError(null);
     setResult(null);
     try {
       const res = await fetch("/api/analyze", {
@@ -96,15 +102,35 @@ export default function Analyzer({
       if (!res.ok) {
         setError(data.error || "Ocurrió un error al analizar el texto.");
         setErrorCode(data.code || null);
+        setCanBuyExtra(!!data.canBuyExtra);
         if (typeof data.remaining === "number") setRemaining(data.remaining);
         return;
       }
       setResult(data.result);
+      setUsedExtraCredit(!!data.usedExtraCredit);
       if (typeof data.remaining === "number") setRemaining(data.remaining);
     } catch {
       setError("No se pudo conectar con el servidor. Intenta de nuevo.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleBuyExtra() {
+    setBuyingExtra(true);
+    setBuyExtraError(null);
+    try {
+      const res = await fetch("/api/checkout-extra", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setBuyExtraError(data.error || "No se pudo iniciar el pago.");
+        return;
+      }
+      window.location.href = data.url;
+    } catch {
+      setBuyExtraError("No se pudo conectar con el servidor.");
+    } finally {
+      setBuyingExtra(false);
     }
   }
 
@@ -212,14 +238,30 @@ export default function Analyzer({
 
         {error && (
           <div className="mt-4 rounded-lg border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
-            {error}
-            {(errorCode === "DAILY_LIMIT_REACHED" || errorCode === "TEXT_TOO_LONG") && (
-              <>
-                {" "}
-                <Link href="/precios" className="underline font-medium">
-                  Ver plan sin límite
-                </Link>
-              </>
+            <p>
+              {error}
+              {(errorCode === "DAILY_LIMIT_REACHED" || errorCode === "TEXT_TOO_LONG") && (
+                <>
+                  {" "}
+                  <Link href="/precios" className="underline font-medium">
+                    Ver plan sin límite
+                  </Link>
+                </>
+              )}
+            </p>
+            {errorCode === "DAILY_LIMIT_REACHED" && canBuyExtra && (
+              <div className="mt-3 border-t border-danger/20 pt-3">
+                <button
+                  onClick={handleBuyExtra}
+                  disabled={buyingExtra}
+                  className="rounded-full bg-foreground px-4 py-2 text-xs font-medium text-background transition-colors hover:opacity-90 disabled:opacity-50"
+                >
+                  {buyingExtra ? "Redirigiendo…" : "O compra 1 análisis extra por $2 USD"}
+                </button>
+                {buyExtraError && (
+                  <p className="mt-2 text-xs text-danger">{buyExtraError}</p>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -258,6 +300,14 @@ export default function Analyzer({
               <span>100 · más señales de IA</span>
             </div>
           </div>
+
+          {usedExtraCredit && (
+            <p className="rounded-lg bg-accent-soft text-accent-strong text-sm px-3 py-2">
+              Este análisis usó el crédito extra que compraste — ya se acabaron tus
+              gratis de hoy, así que si necesitas otro, te vamos a ofrecer comprar uno
+              más o pasar al plan sin límite.
+            </p>
+          )}
 
           {result.tooShort && (
             <p className="rounded-lg bg-warn-soft text-warn text-sm px-3 py-2">
