@@ -178,6 +178,9 @@ export default function Analyzer({
             >
               {result.verdictLabel}
             </span>
+            <span className="text-xs font-mono text-muted">
+              Puntaje: {Math.round(result.finalScore * 100)} / 100
+            </span>
             <span className="text-xs text-muted">
               {result.wordCount.toLocaleString("es")} palabras · {result.sentenceCount}{" "}
               oraciones · idioma detectado: {result.lang === "es" ? "español" : "inglés"}
@@ -185,15 +188,17 @@ export default function Analyzer({
           </div>
 
           <div>
-            <div className="h-2 w-full rounded-full bg-border overflow-hidden">
+            <div className="relative h-3 w-full rounded-full bg-border overflow-hidden">
               <div
-                className={`h-full ${VERDICT_STYLES[result.verdict].bar}`}
-                style={{ width: `${Math.round(result.finalScore * 100)}%` }}
+                className={`h-full ${VERDICT_STYLES[result.verdict].bar} transition-all`}
+                style={{
+                  width: `${Math.max(3, Math.round(result.finalScore * 100))}%`,
+                }}
               />
             </div>
             <div className="mt-1 flex justify-between text-[11px] text-muted">
-              <span>Más señales de humano</span>
-              <span>Más señales de IA</span>
+              <span>0 · más señales de humano</span>
+              <span>100 · más señales de IA</span>
             </div>
           </div>
 
@@ -201,6 +206,19 @@ export default function Analyzer({
             <p className="rounded-lg bg-warn-soft text-warn text-sm px-3 py-2">
               El texto es corto (menos de 50 palabras). Con tan poco texto, cualquier
               estimación es menos confiable — trátala con más cautela todavía.
+            </p>
+          )}
+
+          {result.finalScore < 0.12 && !result.tooShort && (
+            <p className="rounded-lg bg-warn-soft text-warn text-sm px-3 py-2">
+              Puntaje muy bajo: ninguna de las 3 señales que revisamos (variación de
+              oraciones, frases típicas de IA, estructura repetida) encontró indicios.
+              Esto es una buena señal de que es humano, pero no una garantía — un texto
+              de IA redactado a propósito para variar el largo de las oraciones y evitar
+              frases comunes puede pasar esta prueba, igual que pasaría con cualquier
+              otro detector basado en patrones (gratis o de paga). Si sospechas que el
+              texto fue diseñado para evadir detección, trata este resultado con más
+              cautela.
             </p>
           )}
 
