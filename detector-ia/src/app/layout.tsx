@@ -1,11 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
-// Nota: se usan pilas de fuentes del sistema (sin next/font/google) para que
-// el proyecto compile sin depender de acceso a Google Fonts en build time.
-// Si más adelante quieres tipografías específicas, next/font/google funciona
-// igual de bien en Vercel (que sí tiene salida a internet en el build).
-
 export const metadata: Metadata = {
   title: "Indicio — Detector de texto de IA",
   description:
@@ -15,6 +10,13 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="es" className="h-full antialiased">
+      <head>
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1541548501482313"
+          crossOrigin="anonymous"
+        ></script>
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
