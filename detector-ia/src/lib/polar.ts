@@ -26,10 +26,14 @@ function apiBase(): string {
     : "https://sandbox-api.polar.sh";
 }
 
+type CheckoutOk = { url: string };
+type CheckoutErr = { error: string };
+type CheckoutResult = CheckoutOk | CheckoutErr;
+
 async function createCheckoutForProduct(
   productId: string,
   successUrl: string
-): Promise<{ url: string } | { error: string }> {
+): Promise<CheckoutResult> {
   try {
     const res = await fetch(`${apiBase()}/v1/checkouts/`, {
       method: "POST",
@@ -54,9 +58,7 @@ async function createCheckoutForProduct(
   }
 }
 
-export async function createPolarCheckout(): Promise
-  { url: string } | { error: string }
-> {
+export async function createPolarCheckout(): Promise<CheckoutResult> {
   if (!isPolarConfigured()) {
     return { error: "Polar no está configurado todavía." };
   }
@@ -68,9 +70,7 @@ export async function createPolarCheckout(): Promise
 }
 
 /** Checkout de pago único para "1 análisis extra" (sin suscripción). */
-export async function createPolarExtraCheckout(): Promise
-  { url: string } | { error: string }
-> {
+export async function createPolarExtraCheckout(): Promise<CheckoutResult> {
   if (!isPolarExtraConfigured()) {
     return { error: "La compra individual todavía no está configurada." };
   }
@@ -81,9 +81,12 @@ export async function createPolarExtraCheckout(): Promise
   );
 }
 
-export async function getPolarCheckout(checkoutId: string): Promise
-  { email: string | null; status: string } | { error: string }
-> {
+type PolarCheckoutStatus = { email: string | null; status: string };
+type PolarCheckoutStatusResult = PolarCheckoutStatus | CheckoutErr;
+
+export async function getPolarCheckout(
+  checkoutId: string
+): Promise<PolarCheckoutStatusResult> {
   if (!isPolarConfigured()) return { error: "Polar no está configurado todavía." };
   try {
     const res = await fetch(`${apiBase()}/v1/checkouts/${checkoutId}`, {
