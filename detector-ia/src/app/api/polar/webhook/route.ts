@@ -6,8 +6,14 @@ export const runtime = "nodejs";
 
 // Eventos de Polar que nos interesan. Ver docs de Polar para la lista
 // completa: https://docs.polar.sh/integrate/webhooks/events
-const GRANT_EVENTS = new Set([
-  "order.paid",
+//
+// IMPORTANTE: "order.paid" se dispara tanto para la suscripción ("Plan sin
+// límite") como para el producto de pago único ("1 análisis extra"). Solo
+// debe activar el plan sin límite permanente cuando el producto comprado es
+// el de la suscripción — si no, una compra de $2 activaría por error acceso
+// ilimitado gratis. El crédito de "análisis extra" se otorga aparte, en
+// /api/unlock-extra, justo cuando la persona vuelve del checkout.
+const SUBSCRIPTION_EVENTS = new Set([
   "subscription.created",
   "subscription.active",
 ]);
@@ -46,9 +52,18 @@ export async function POST(req: NextRequest) {
     (data.customer as Record<string, unknown> | undefined)?.email ||
     (data as Record<string, unknown>).customer_email ||
     null;
+  const productId =
+    (data as Record<string, unknown>).product_id ||
+    (data.product as Record<string, unknown> | undefined)?.id ||
+    null;
+  const isSubscriptionProduct =
+    !!process.env.POLAR_PRODUCT_ID && productId === process.env.POLAR_PRODUCT_ID;
 
   if (typeof email === "string") {
-    if (GRANT_EVENTS.has(type)) {
+    if (
+      SUBSCRIPTION_EVENTS.has(type) ||
+      (type === "order.paid" && isSubscriptionProduct)
+    ) {
       await usageStore.markPaid(email);
     } else if (REVOKE_EVENTS.has(type)) {
       await usageStore.unmarkPaid(email);
