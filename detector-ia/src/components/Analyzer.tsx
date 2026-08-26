@@ -12,10 +12,9 @@ interface Props {
   maxChars: number;
 }
 
-const VERDICT_STYLES: Record
-  AnalysisResult["verdict"],
-  { badge: string; bar: string; ring: string }
-> = {
+type VerdictStyle = { badge: string; bar: string; ring: string };
+
+const VERDICT_STYLES: { humano: VerdictStyle; mixto: VerdictStyle; ia: VerdictStyle } = {
   humano: {
     badge: "bg-accent-soft text-accent-strong",
     bar: "bg-accent",
