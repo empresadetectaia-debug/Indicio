@@ -1,6 +1,6 @@
 export const LIMITS = {
   gratis: {
-    analysesPerDay: 5,
+    analysesPerDay: 3,
     maxChars: 4000, // ~600-700 palabras
   },
   pago: {
