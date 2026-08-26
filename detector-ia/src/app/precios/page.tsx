@@ -55,6 +55,14 @@ export default function PreciosPage() {
           </div>
         </section>
 
+        <section className="mx-auto max-w-4xl px-6 pb-6 text-center">
+          <p className="text-sm text-muted">
+            ¿Solo necesitas uno o dos análisis extra hoy, sin suscribirte? Cuando se
+            acaben tus {LIMITS.gratis.analysesPerDay} gratis del día, te vamos a ofrecer
+            comprar 1 análisis extra por $2 USD, sin compromiso.
+          </p>
+        </section>
+
         <section className="mx-auto max-w-4xl px-6 pb-16 text-center">
           <UnlockByEmail />
         </section>
