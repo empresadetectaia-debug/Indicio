@@ -9,6 +9,7 @@ import Footer from "@/components/Footer";
 function PagoExitosoContent() {
   const params = useSearchParams();
   const checkoutId = params.get("checkout_id");
+  const isExtra = params.get("type") === "extra";
   const [status, setStatus] = useState<"loading" | "ok" | "error">("loading");
   const [message, setMessage] = useState("");
 
@@ -18,7 +19,7 @@ function PagoExitosoContent() {
       setMessage("Falta el identificador del pago en el enlace.");
       return;
     }
-    fetch("/api/unlock", {
+    fetch(isExtra ? "/api/unlock-extra" : "/api/unlock", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ checkoutId }),
@@ -36,7 +37,7 @@ function PagoExitosoContent() {
         setStatus("error");
         setMessage("No se pudo conectar con el servidor.");
       });
-  }, [checkoutId]);
+  }, [checkoutId, isExtra]);
 
   return (
     <section className="mx-auto max-w-md px-6 py-24 text-center">
@@ -44,10 +45,12 @@ function PagoExitosoContent() {
       {status === "ok" && (
         <>
           <h1 className="font-serif-heading text-2xl font-semibold mb-3">
-            ¡Listo! Ya tienes el plan sin límite
+            {isExtra ? "¡Listo! Ya tienes 1 análisis extra" : "¡Listo! Ya tienes el plan sin límite"}
           </h1>
           <p className="text-muted mb-6">
-            Tu acceso ya está activo en este navegador.
+            {isExtra
+              ? "Ya puedes analizar un texto o archivo más hoy, en este mismo navegador."
+              : "Tu acceso ya está activo en este navegador."}
           </p>
           <Link
             href="/"
