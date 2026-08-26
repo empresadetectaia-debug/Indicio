@@ -4,6 +4,7 @@ import { analyzeText } from "@/lib/heuristics";
 import { usageStore } from "@/lib/store";
 import { getPlanFromCookies } from "@/lib/plan";
 import { LIMITS } from "@/lib/limits";
+import { isPolarExtraConfigured } from "@/lib/polar";
 
 export const runtime = "nodejs";
 
@@ -56,32 +57,42 @@ export async function POST(req: NextRequest) {
   const usageKey = `${ip}:${uid}`;
 
   let remaining: number | null = null;
+  let usedExtraCredit = false;
 
   if (plan === "gratis") {
     const currentCount = await usageStore.getDaily(usageKey);
     if (currentCount >= limits.analysesPerDay) {
-      const res = NextResponse.json(
-        {
-          error:
-            "Llegaste al límite de análisis gratis por hoy. Vuelve mañana o pasa al plan sin límite.",
-          code: "DAILY_LIMIT_REACHED",
-          remaining: 0,
-          limit: limits.analysesPerDay,
-        },
-        { status: 429 }
-      );
-      if (isNewUid) {
-        res.cookies.set(UID_COOKIE, uid, {
-          httpOnly: true,
-          sameSite: "lax",
-          maxAge: 60 * 60 * 24 * 400,
-          path: "/",
-        });
+      // Ya no quedan análisis gratis hoy: intenta usar un crédito comprado
+      // por separado ("1 análisis extra", $2 USD) antes de rechazar.
+      const hadCredit = await usageStore.consumeExtraCredit(usageKey);
+      if (!hadCredit) {
+        const res = NextResponse.json(
+          {
+            error:
+              "Llegaste al límite de análisis gratis por hoy. Vuelve mañana, compra un análisis extra, o pasa al plan sin límite.",
+            code: "DAILY_LIMIT_REACHED",
+            remaining: 0,
+            limit: limits.analysesPerDay,
+            canBuyExtra: isPolarExtraConfigured(),
+          },
+          { status: 429 }
+        );
+        if (isNewUid) {
+          res.cookies.set(UID_COOKIE, uid, {
+            httpOnly: true,
+            sameSite: "lax",
+            maxAge: 60 * 60 * 24 * 400,
+            path: "/",
+          });
+        }
+        return res;
       }
-      return res;
+      usedExtraCredit = true;
+      remaining = 0;
+    } else {
+      const newCount = await usageStore.incrementDaily(usageKey);
+      remaining = Math.max(0, limits.analysesPerDay - newCount);
     }
-    const newCount = await usageStore.incrementDaily(usageKey);
-    remaining = Math.max(0, limits.analysesPerDay - newCount);
   }
 
   const result = analyzeText(text);
@@ -91,6 +102,7 @@ export async function POST(req: NextRequest) {
     plan,
     remaining,
     limit: plan === "gratis" ? limits.analysesPerDay : null,
+    usedExtraCredit,
   });
 
   if (isNewUid) {
